@@ -1,0 +1,13 @@
+C:\Users\home\source\repos\SpringSimulation\SpringSimulation\bin\Debug\SpringSimulation.exe.config
+C:\Users\home\source\repos\SpringSimulation\SpringSimulation\bin\Debug\SpringSimulation.exe
+C:\Users\home\source\repos\SpringSimulation\SpringSimulation\bin\Debug\SpringSimulation.pdb
+C:\Users\home\source\repos\SpringSimulation\SpringSimulation\obj\Debug\SpringSimulation.csprojAssemblyReference.cache
+C:\Users\home\source\repos\SpringSimulation\SpringSimulation\obj\Debug\SpringSimulation.MainForm.resources
+C:\Users\home\source\repos\SpringSimulation\SpringSimulation\obj\Debug\SpringSimulation.Properties.Resources.resources
+C:\Users\home\source\repos\SpringSimulation\SpringSimulation\obj\Debug\SpringSimulation.csproj.GenerateResource.cache
+C:\Users\home\source\repos\SpringSimulation\SpringSimulation\obj\Debug\SpringSimulation.csproj.CoreCompileInputs.cache
+C:\Users\home\source\repos\SpringSimulation\SpringSimulation\obj\Debug\SpringSimulation.exe
+C:\Users\home\source\repos\SpringSimulation\SpringSimulation\obj\Debug\SpringSimulation.pdb
+C:\Users\home\source\repos\SpringSimulation\SpringSimulation\bin\Debug\System.Numerics.Vectors.dll
+C:\Users\home\source\repos\SpringSimulation\SpringSimulation\bin\Debug\System.Numerics.Vectors.xml
+C:\Users\home\source\repos\SpringSimulation\SpringSimulation\obj\Debug\SpringSimulation.csproj.CopyComplete
