@@ -9,6 +9,8 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Numerics;
 using System.Runtime.InteropServices;
+using System.Diagnostics;
+using System.Threading;
 
 namespace SpringSimulation
 {
@@ -67,10 +69,12 @@ namespace SpringSimulation
             _particles.Add(new Particle(400, 50, true));
             _springs.Add(new Spring(.01f, 200, _particles[0], _particles[1]));
 
-            Timer timer = new Timer();
+            System.Windows.Forms.Timer timer = new System.Windows.Forms.Timer();
             timer.Interval = 10;
             timer.Tick += Timer_Tick;
             timer.Start();
+
+            new Thread(MouseControlHandler).Start();
         }
 
         Bitmap canvas;
@@ -141,11 +145,71 @@ namespace SpringSimulation
             }
         }
 
+        private const float CLICK_DURATION = .3f * 1000;
+        Stopwatch _leftClickStopwatch = new Stopwatch();
+        Stopwatch _rightClickStopwatch = new Stopwatch();
+        Particle _selectedParticle = null;
         private void MouseControlHandler()
+        {
+            for (; ; )
+            {
+                if (_leftClickStopwatch.ElapsedMilliseconds >= CLICK_DURATION)
+                {
+                    //Left drag
+                }
+
+                if (_rightClickStopwatch.ElapsedMilliseconds >= CLICK_DURATION)
+                {
+                    //Right drag
+                }
+            }
+        }
+        private void MouseDownHandler(object sender, MouseEventArgs e)
+        {
+            switch(e.Button)
+            {
+                case MouseButtons.Left:
+                    _leftClickStopwatch.Start();
+                    break;
+                case MouseButtons.Right:
+                    _rightClickStopwatch.Start();
+                    break;
+            }
+        }
+
+        private void MouseMoveHandler(object sender, MouseEventArgs e)
         {
 
         }
 
+        private void MouseUpHandler(object sender, MouseEventArgs e)
+        {
+            if (_leftClickStopwatch.ElapsedMilliseconds < CLICK_DURATION && _leftClickStopwatch.IsRunning)
+            {
+                //Left click
+            }
+
+            if(_rightClickStopwatch.ElapsedMilliseconds < CLICK_DURATION && _rightClickStopwatch.IsRunning)
+            {
+                //Right click
+            }
+
+            switch (e.Button)
+            {
+                case MouseButtons.Left:
+                    if (_leftClickStopwatch.IsRunning)
+                        _leftClickStopwatch.Stop();
+                    break;
+                case MouseButtons.Right:
+                    if (_rightClickStopwatch.IsRunning)
+                        _rightClickStopwatch.Stop();
+                    break;
+            }
+        }
+
+
+        #region OLD_MOUSE_HANDLING
+        /*
         private Particle _selectedParticle = null;
         private bool _selectedParticleLocked;
         private bool _rightMouseDown = false;
@@ -192,5 +256,7 @@ namespace SpringSimulation
                 _selectedParticle = null;
             }
         }
+        */
+        #endregion
     }
 }

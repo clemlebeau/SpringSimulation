@@ -1,0 +1,22 @@
+Mouse control
+
+handler() {
+l/rwatch.elapsed >= clickInvertal ? Selection/Move
+}
+
+down() {
+l=down;
+lwatch.start();
+
+r=down;
+rwatch.start();
+
+}
+
+up() {
+l=!down;
+r=!down;
+
+l/rwatch.elapsed < clickInterval ? HandleClick
+
+}
