@@ -21,6 +21,8 @@ namespace SpringSimulation
             InitializeComponent();
         }
 
+        private const float DEFAULT_K = .01f;
+
         bool _pauseSimulation = false;
         bool _applyGravity = true;
 
@@ -48,8 +50,8 @@ namespace SpringSimulation
 
             pictureBox.BackColor = Color.Red;
 
-            canvas = new Bitmap(pictureBox.Width, pictureBox.Height);
-            graphics = Graphics.FromImage(canvas);
+            _canvas = new Bitmap(pictureBox.Width, pictureBox.Height);
+            _graphics = Graphics.FromImage(_canvas);
 
             Setup();
         }
@@ -77,12 +79,19 @@ namespace SpringSimulation
             new Thread(MouseControlHandler).Start();
         }
 
-        Bitmap canvas;
-        Graphics graphics;
+        Bitmap _canvas;
+        Graphics _graphics;
+
+        PointF _fakePoint;
 
         private void Timer_Tick(object sender, EventArgs e)
         {
-            graphics.Clear(Color.Black);
+            _graphics.Clear(Color.Black);
+
+            if (_selectedRightParticle != null && _fakePoint != null)
+            {
+                _graphics.DrawLine(Pens.Red, _selectedRightParticle.Position.X, _selectedRightParticle.Position.Y, _fakePoint.X, _fakePoint.Y);
+            }
 
             if (!_pauseSimulation)
             {
@@ -111,18 +120,28 @@ namespace SpringSimulation
             }
 
 
-            pictureBox.Image = canvas;
+            pictureBox.Image = _canvas;
         }
 
         private void DrawParticle(Particle particle, float radius = 25)
         {
 
-            graphics.FillEllipse(Brushes.White, particle.Position.X - radius / 2, particle.Position.Y - radius / 2, 25, 25);
+            try
+            {
+                Brush brush = particle.Locked ? Brushes.MediumVioletRed: Brushes.White;
+                _graphics.FillEllipse(brush, particle.Position.X - radius / 2, particle.Position.Y - radius / 2, 25, 25);
+            }
+            catch { }
         }
 
         private void DrawSpring(Spring spring)
         {
-            graphics.DrawLine(Pens.White, spring.A.Position.X, spring.A.Position.Y, spring.B.Position.X, spring.B.Position.Y);
+            try
+            {
+                Pen pen = Pens.White;
+                _graphics.DrawLine(pen, spring.A.Position.X, spring.A.Position.Y, spring.B.Position.X, spring.B.Position.Y);
+            }
+            catch { }
         }
 
         private void KeyDownHandler(object sender, KeyEventArgs e)
@@ -142,36 +161,45 @@ namespace SpringSimulation
                         particle.ResetMomentum();
                     }
                     break;
+                case Keys.Escape:
+                    Environment.Exit(0);
+                    break;
             }
         }
-
+        #region NEW_MOUSE_HANDLING
         private const float CLICK_DURATION = .3f * 1000;
+        private const float PARTICLE_DETECTION_RANGE = 50f;
         Stopwatch _leftClickStopwatch = new Stopwatch();
         Stopwatch _rightClickStopwatch = new Stopwatch();
-        Particle _selectedParticle = null;
+        Particle _selectedLeftParticle = null;
+        Particle _selectedRightParticle = null;
+        Particle _springSelectedParticle = null;
         private void MouseControlHandler()
         {
             for (; ; )
             {
-                if (_leftClickStopwatch.ElapsedMilliseconds >= CLICK_DURATION)
+                if (_leftClickStopwatch.ElapsedMilliseconds >= CLICK_DURATION && _selectedLeftParticle != null)
                 {
-                    //Left drag
+                    _selectedLeftParticle.MoveToPoint(Cursor.Position);
                 }
 
                 if (_rightClickStopwatch.ElapsedMilliseconds >= CLICK_DURATION)
                 {
-                    //Right drag
+                    _springSelectedParticle = GetCloseParticle(Cursor.Position.X, Cursor.Position.Y);
+                    _fakePoint = _springSelectedParticle == null ? Cursor.Position : new PointF(_springSelectedParticle.Position.X, _springSelectedParticle.Position.Y);
                 }
             }
         }
         private void MouseDownHandler(object sender, MouseEventArgs e)
         {
-            switch(e.Button)
+            switch (e.Button)
             {
                 case MouseButtons.Left:
+                    _selectedLeftParticle = GetCloseParticle(e.X, e.Y);
                     _leftClickStopwatch.Start();
                     break;
                 case MouseButtons.Right:
+                    _selectedRightParticle = GetCloseParticle(e.X, e.Y);
                     _rightClickStopwatch.Start();
                     break;
             }
@@ -184,32 +212,128 @@ namespace SpringSimulation
 
         private void MouseUpHandler(object sender, MouseEventArgs e)
         {
+
             if (_leftClickStopwatch.ElapsedMilliseconds < CLICK_DURATION && _leftClickStopwatch.IsRunning)
             {
                 //Left click
+                HandleLeftClick(e);
+            }
+            if (_rightClickStopwatch.IsRunning)
+            {
+                if (_rightClickStopwatch.ElapsedMilliseconds < CLICK_DURATION)
+                {
+                    //Right click
+                    HandleRightClick(e);
+                }
+                else if (_selectedRightParticle != null && _springSelectedParticle != null)
+                {
+                    float length = (float)Math.Sqrt(Math.Pow(_selectedRightParticle.Position.X - _springSelectedParticle.Position.X, 2) + Math.Pow(_selectedRightParticle.Position.Y - _springSelectedParticle.Position.Y, 2));
+                    _springs.Add(new Spring(DEFAULT_K, length, _selectedRightParticle, _springSelectedParticle));
+                }
             }
 
-            if(_rightClickStopwatch.ElapsedMilliseconds < CLICK_DURATION && _rightClickStopwatch.IsRunning)
-            {
-                //Right click
-            }
+            _selectedLeftParticle = null;
+            _selectedRightParticle = null;
+            _springSelectedParticle = null;
 
             switch (e.Button)
             {
                 case MouseButtons.Left:
                     if (_leftClickStopwatch.IsRunning)
+                    {
                         _leftClickStopwatch.Stop();
+                        _leftClickStopwatch.Reset();
+                    }
                     break;
                 case MouseButtons.Right:
                     if (_rightClickStopwatch.IsRunning)
+                    {
                         _rightClickStopwatch.Stop();
+                        _rightClickStopwatch.Reset();
+                    }
+                    break;
+                case MouseButtons.Middle:
+                    HandleMiddleClick(e);
                     break;
             }
         }
 
+        private void HandleLeftClick(MouseEventArgs e)
+        {
+            foreach (Particle particle in _particles)
+            {
+                if (CheckForParticle(particle, e.X, e.Y))
+                {
+                    RemoveSprings(particle);
+                    _particles.Remove(particle);
+                    return;
+                }
+            }
+            _particles.Add(new Particle(e.X, e.Y));
+        }
 
-        #region OLD_MOUSE_HANDLING
+        private void HandleMiddleClick(MouseEventArgs e)
+        {
+            foreach (Particle particle in _particles)
+            {
+                if (CheckForParticle(particle, e.X, e.Y))
+                {
+                    particle.ResetMomentum();
+                    particle.Locked = !particle.Locked;
+                    return;
+                }
+            }
+        }
+
+        private void HandleRightClick(MouseEventArgs e)
+        {
+            foreach (Particle particle in _particles)
+            {
+                if (CheckForParticle(particle, e.X, e.Y))
+                {
+                    RemoveSprings(particle);
+                    return;
+                }
+            }
+        }
+
+        private Particle GetCloseParticle(float x, float y)
+        {
+            foreach (Particle particle in _particles)
+            {
+                if (CheckForParticle(particle, x, y))
+                    return particle;
+            }
+            return null;
+        }
+
+        private bool CheckForParticle(Particle particle, float x, float y)
+        {
+            float squaredXDiff = (float)Math.Pow(particle.Position.X - x, 2);
+            float squaredYDiff = (float)Math.Pow(particle.Position.Y - y, 2);
+            return squaredXDiff + squaredYDiff <= Math.Pow(PARTICLE_DETECTION_RANGE, 2);
+        }
+
+        private void RemoveSprings(Particle particle)
+        {
+            List<Spring> springsToRemove = new List<Spring>();
+            foreach (Spring spring in _springs)
+            {
+                if (spring.A == particle || spring.B == particle)
+                {
+                    springsToRemove.Add(spring);
+                }
+            }
+
+            foreach (Spring spring in springsToRemove)
+            {
+                _springs.Remove(spring);
+            }
+        }
+        #endregion
         /*
+        #region OLD_MOUSE_HANDLING
+        
         private Particle _selectedParticle = null;
         private bool _selectedParticleLocked;
         private bool _rightMouseDown = false;
@@ -256,7 +380,8 @@ namespace SpringSimulation
                 _selectedParticle = null;
             }
         }
-        */
+        
         #endregion
+        */
     }
 }
